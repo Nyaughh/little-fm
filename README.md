@@ -4,7 +4,7 @@
 
 <h1 align="center">little fm</h1>
 <p align="center">A little closer, one song at a time.</p>
-<p align="center"><a href="https://github.com/Nyaughh/little-fm-app/releases/latest">Download for Android</a></p>
+<p align="center"><a href="https://github.com/Nyaughh/little-fm/releases/latest">Download for Android</a></p>
 
 Your friends' latest Last.fm songs, in a little corner of your home screen.
 
@@ -14,7 +14,7 @@ Your friends' latest Last.fm songs, in a little corner of your home screen.
 
 ### Make room for a friend
 
-Download the APK from [Releases](https://github.com/Nyaughh/little-fm-app/releases/latest), install little fm, and add a friend.
+Download the APK from [Releases](https://github.com/Nyaughh/little-fm/releases/latest), install little fm, and add a friend.
 
 For a home screen widget, long-press an empty spot, tap **Widgets**, and find **little fm**.
 
