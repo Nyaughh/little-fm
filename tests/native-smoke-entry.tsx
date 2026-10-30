@@ -61,7 +61,13 @@ function SmokeApp() {
       await saveUsernames(state.usernames);
       await saveWidgetSettings(state.settings);
       await AsyncStorage.setItem('@lastfm_tracks_v1', JSON.stringify(state.tracks));
-      const cover = await resolveArtwork(state.tracks[0].currentTrack!);
+      let cover = await resolveArtwork(state.tracks[0].currentTrack!);
+      // A cold emulator can spend the first image budget initializing its
+      // decoder. Exercise the normal backoff before declaring setup complete.
+      for (let attempt = 0; !cover.uri && attempt < 2; attempt++) {
+        await new Promise(resolve => setTimeout(resolve, Math.max(100, Math.min(15050, cover.expires - Date.now() + 50))));
+        cover = await resolveArtwork(state.tracks[0].currentTrack!);
+      }
       setCoverReady(Boolean(cover.uri?.startsWith('data:image')));
       console.info('WIDGET_SMOKE_ARTWORK', cover.uri?.startsWith('data:image') ? 'decoded' : 'missing');
       await syncWidgets();

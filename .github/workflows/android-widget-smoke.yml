@@ -37,12 +37,17 @@ jobs:
         with:
           api-level: 35
           arch: x86_64
-          target: google_apis
+          target: default
           profile: pixel_6
+          ram-size: 3072M
           disable-animations: true
           script: |
             python3 scripts/widget-fixture-server.py > widget-fixture.log 2>&1 &
+            for attempt in {1..20}; do curl -fsS http://127.0.0.1:8788/cover.png >/dev/null && break; sleep 1; done
+            curl -fsS http://127.0.0.1:8788/cover.png >/dev/null
             adb reverse tcp:8788 tcp:8788
+            adb shell input keyevent 3
+            sleep 10
             adb install android/app/build/outputs/apk/release/app-release.apk
             adb install android/app/build/outputs/apk/androidTest/release/app-release-androidTest.apk
             adb shell appwidget grantbind --package com.lastfm.tracktracker --user 0

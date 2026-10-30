@@ -104,6 +104,7 @@ public class WidgetSmokeTest {
             // Change only the simulated upstream song while the app stays
             // behind the launcher. No worker enqueue or manual refresh call.
             react.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class).emit("WIDGET_SMOKE_LIVE", "Live refresh second song");
+            Thread.sleep(WidgetLiveService.INTERVAL_MS + 2000);
             Bitmap second = waitForNewBitmap(view, imageId, first, WidgetLiveService.INTERVAL_MS + 15000);
             save(second, "live-widget-second-song");
             assertTrue("Live updates stopped after their first check", WidgetLiveService.isRunning());
@@ -117,6 +118,13 @@ public class WidgetSmokeTest {
             }
             assertTrue("Test app did not return to the foreground", foreground.get());
         }
+        AtomicReference<Boolean> fetched = new AtomicReference<>(false);
+        deadline = System.currentTimeMillis() + 10000;
+        while (!fetched.get() && System.currentTimeMillis() < deadline) {
+            instrumentation.runOnMainSync(() -> fetched.set(hasText(activity.getWindow().getDecorView(), "Live refresh fetched Live refresh second song")));
+            Thread.sleep(100);
+        }
+        assertTrue("The background updater did not fetch the second song", fetched.get());
     }
 
     @Test public void artworkAndBothLauncherWidgetsRenderOnAndroid() throws Exception {
