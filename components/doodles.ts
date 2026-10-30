@@ -37,10 +37,11 @@ function scatteredMotifs(width: number, height: number, pattern: 'alien' | 'frui
     return `<g transform="translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(${rotation.toFixed(1)})">${draw(art, -artWidth / 2, -size / 2, artWidth, size)}</g>`;
   };
   if (pattern === 'alien') {
+    const face = random() > .5 ? 'alien' : 'alienFace';
     return [
       motif('ufo', width - 38, 70, 40, -12),
-      motif(random() > .5 ? 'alien' : 'alienFace', width - 32, height - 32, 38, 12),
-      motif('star', circle ? width / 2 : 28, circle ? height / 2 : height - 28, 17, -15),
+      motif(face, width - 32, height - 32, 38, 12),
+      motif(face === 'alien' ? 'alienFace' : 'alien', circle ? width / 2 : 28, circle ? height / 2 : height - 28, circle ? 32 : 30, -15),
     ].join('');
   }
   if (pattern === 'miffy') {

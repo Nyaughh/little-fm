@@ -12,9 +12,10 @@ const placements = (svg: string) => Array.from(svg.matchAll(/<g transform="trans
   return { x, y, left: x - halfWidth, right: x + halfWidth, top: y - halfHeight, bottom: y + halfHeight };
 });
 
-test.each([184, 316])('the %s-wide Alien widget has one face and one UFO', width => {
+test.each([184, 316])('the %s-wide Alien widget includes both supplied faces and one UFO', width => {
   const svg = widgetTexture(width, 238, '#34452F', '#EAF2D6', 'alien', width > 184);
-  expect(count(svg, 'alien') + count(svg, 'alienFace')).toBe(1);
+  expect(count(svg, 'alien')).toBe(1);
+  expect(count(svg, 'alienFace')).toBe(1);
   expect(count(svg, 'ufo')).toBe(1);
   for (const drawing of svg.matchAll(/data-height="([^"]+)"/g)) {
     expect(Number(drawing[1])).toBeLessThanOrEqual(42);
