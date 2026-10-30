@@ -4,7 +4,7 @@ export default {
   expo: {
     name: "little fm",
     slug: "little-fm",
-    version: "1.0.4",
+    version: "1.0.5",
     orientation: "portrait",
     scheme: "listeningcircle",
     newArchEnabled: false,
@@ -49,7 +49,7 @@ export default {
       favicon: "./assets/images/favicon.png"
     },
     android: {
-      versionCode: 5,
+      versionCode: 6,
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
         backgroundColor: "#FBE6E4"

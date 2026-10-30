@@ -1,5 +1,5 @@
 import React from 'react';
-import { NativeModules } from 'react-native';
+import { AppRegistry, NativeModules } from 'react-native';
 import { getWidgetInfo, registerWidgetTaskHandler, requestWidgetUpdateById, type WidgetTaskHandlerProps } from 'react-native-android-widget';
 import { loadListeningState, refreshListeningState } from '../services/listening';
 import { ListeningWidget } from './ListeningWidget';
@@ -8,9 +8,24 @@ import type { ListeningState } from '../services/listening-model';
 
 const names = ['FriendListening', 'ListeningCircle'];
 let renderRevision = 0;
+let liveRefresh: Promise<void> | null = null;
 export const widgetsAvailable = () => Boolean(NativeModules.AndroidWidget);
 export function registerWidgets() {
-  if (widgetsAvailable()) registerWidgetTaskHandler(widgetTaskHandler);
+  if (!widgetsAvailable()) return;
+  registerWidgetTaskHandler(widgetTaskHandler);
+  AppRegistry.registerHeadlessTask('LittleFmLiveWidgets', () => refreshLiveWidgets);
+}
+// The native service owns the timer: JS intervals can be suspended when the
+// app is behind the launcher. Share an unfinished check across service ticks.
+export function refreshLiveWidgets(): Promise<void> {
+  if (liveRefresh) return liveRefresh;
+  liveRefresh = (async () => {
+    if (!widgetsAvailable()) return;
+    const widgets = await Promise.all(names.map(name => getWidgetInfo(name)));
+    if (!widgets.some(group => group.length)) return;
+    await publishArtwork(await refreshListeningState());
+  })().finally(() => { liveRefresh = null; });
+  return liveRefresh;
 }
 export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
   if (props.widgetAction === 'WIDGET_DELETED' || !names.includes(props.widgetInfo.widgetName)) return;

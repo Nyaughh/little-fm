@@ -8,6 +8,7 @@ import android.appwidget.AppWidgetProviderInfo;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.view.ContextThemeWrapper;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -30,6 +31,7 @@ import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
 import com.lastfm.tracktracker.widget.WidgetRefreshWorker;
 import com.lastfm.tracktracker.widget.WidgetRefreshScheduler;
+import com.lastfm.tracktracker.widget.WidgetLiveService;
 import com.facebook.react.ReactApplication;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
@@ -54,6 +56,66 @@ public class WidgetSmokeTest {
         directory.mkdirs();
         try (FileOutputStream stream = new FileOutputStream(new File(directory, name + ".png"))) {
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
+        }
+    }
+
+    private Bitmap widgetBitmap(AppWidgetHostView view, int imageId) {
+        AtomicReference<Bitmap> result = new AtomicReference<>();
+        instrumentation.runOnMainSync(() -> {
+            ImageView image = view.findViewById(imageId);
+            if (image != null && image.getDrawable() instanceof BitmapDrawable) result.set(((BitmapDrawable) image.getDrawable()).getBitmap());
+        });
+        return result.get();
+    }
+
+    private Bitmap waitForNewBitmap(AppWidgetHostView view, int imageId, Bitmap previous, long timeout) throws Exception {
+        long deadline = System.currentTimeMillis() + timeout;
+        while (System.currentTimeMillis() < deadline) {
+            Bitmap current = widgetBitmap(view, imageId);
+            if (current != null && !previous.sameAs(current)) return current;
+            Thread.sleep(150);
+        }
+        fail("The background service did not redraw the changed song without a refresh tap");
+        return null;
+    }
+
+    private void checkLiveUpdates(Activity activity, ReactContext react, AppWidgetHostView view, int imageId) throws Exception {
+        instrumentation.runOnMainSync(() -> WidgetLiveService.startIfAllowed(activity));
+        long deadline = System.currentTimeMillis() + 5000;
+        while (!WidgetLiveService.isRunning() && System.currentTimeMillis() < deadline) Thread.sleep(100);
+        assertTrue("The live widget service did not start", WidgetLiveService.isRunning());
+        if (android.os.Build.VERSION.SDK_INT >= 33) assertEquals("Live checks must work without notification permission", PackageManager.PERMISSION_DENIED,
+            context.checkSelfPermission("android.permission.POST_NOTIFICATIONS"));
+
+        react.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class).emit("WIDGET_SMOKE_LIVE", "Live refresh first song");
+        AtomicReference<Boolean> armed = new AtomicReference<>(false);
+        deadline = System.currentTimeMillis() + 10000;
+        while (!armed.get() && System.currentTimeMillis() < deadline) {
+            instrumentation.runOnMainSync(() -> armed.set(hasText(activity.getWindow().getDecorView(), "Live check armed Live refresh first song")));
+            Thread.sleep(100);
+        }
+        assertTrue("Live check fixture did not change", armed.get());
+        Bitmap before = widgetBitmap(view, imageId);
+        assertNotNull(before);
+        instrumentation.runOnMainSync(() -> assertTrue("Test app did not leave the foreground", activity.moveTaskToBack(true)));
+        try {
+            Bitmap first = waitForNewBitmap(view, imageId, before, 20000);
+            save(first, "live-widget-first-song");
+            // Change only the simulated upstream song while the app stays
+            // behind the launcher. No worker enqueue or manual refresh call.
+            react.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class).emit("WIDGET_SMOKE_LIVE", "Live refresh second song");
+            Bitmap second = waitForNewBitmap(view, imageId, first, WidgetLiveService.INTERVAL_MS + 15000);
+            save(second, "live-widget-second-song");
+            assertTrue("Live updates stopped after their first check", WidgetLiveService.isRunning());
+        } finally {
+            context.startActivity(new Intent(context, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT));
+            deadline = System.currentTimeMillis() + 10000;
+            AtomicReference<Boolean> foreground = new AtomicReference<>(false);
+            while (!foreground.get() && System.currentTimeMillis() < deadline) {
+                instrumentation.runOnMainSync(() -> foreground.set(activity.hasWindowFocus()));
+                Thread.sleep(100);
+            }
+            assertTrue("Test app did not return to the foreground", foreground.get());
         }
     }
 
@@ -157,6 +219,7 @@ public class WidgetSmokeTest {
                         }
                         assertTrue("The scheduled worker did not fetch and redraw the new song", ready.get());
                         save(instrumentation.getUiAutomation().takeScreenshot(), "automatic-widget-refresh");
+                        checkLiveUpdates(activity, reactContext, view.get(), imageId);
                     }
                     if (pattern.equals("doodles")) {
                         // Change the options on the same placed widget, as a
@@ -196,10 +259,16 @@ public class WidgetSmokeTest {
                     }
                     instrumentation.runOnMainSync(() -> ((ViewGroup) view.get().getParent()).removeView(view.get()));
                 } finally { host.deleteHost(); host.stopListening(); }
+                deadline = System.currentTimeMillis() + 5000;
+                while (WidgetLiveService.isRunning() && System.currentTimeMillis() < deadline) Thread.sleep(100);
+                assertFalse("Live updates remained running after deleting the last widget", WidgetLiveService.isRunning());
                 }
             }
             instrumentation.runOnMainSync(() -> ready.set(hasText(activity.getWindow().getDecorView(), "Artwork ready")));
             assertTrue("Android failed to decode the real album cover", ready.get());
-        } finally { activity.finish(); }
+        } finally {
+            context.stopService(new Intent(context, WidgetLiveService.class));
+            activity.finish();
+        }
     }
 }

@@ -29,6 +29,9 @@ public final class WidgetRefreshScheduler {
     }
 
     public static void cancelIfUnused(Context context) {
-        if (!hasWidgets(context)) WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME);
+        if (!hasWidgets(context)) {
+            WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME);
+            context.stopService(new android.content.Intent(context, WidgetLiveService.class));
+        }
     }
 }

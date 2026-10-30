@@ -97,8 +97,8 @@ android {
         applicationId 'com.lastfm.tracktracker'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 5
-        versionName "1.0.4"
+        versionCode 6
+        versionName "1.0.5"
         // Only the emulator test build can reach its loopback HTTP fixture.
         manifestPlaceholders = [littleFmCleartextTraffic: project.hasProperty('littleFmNativeTest') ? "true" : "false"]
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"

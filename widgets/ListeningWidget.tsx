@@ -26,7 +26,7 @@ export function ListeningWidget({ state, circle = false, height = 238, width = 3
       </FlexWidget>
     </FlexWidget>
   ));
-  return <OverlapWidget style={{ width: 'match_parent', height: 'match_parent', borderRadius: 24, overflow: 'hidden', backgroundColor: palette.background }}>
+  return <OverlapWidget clickAction="OPEN_APP" style={{ width: 'match_parent', height: 'match_parent', borderRadius: 24, overflow: 'hidden', backgroundColor: palette.background }}>
     <SvgWidget svg={widgetTexture(width, height, palette.ink, palette.background, state.settings.pattern, circle)} style={{ width, height }} />
     <FlexWidget style={{ width: 'match_parent', height: 'match_parent', paddingTop: padding, paddingHorizontal: padding, paddingBottom: circle ? 0 : padding }}>
       <FlexWidget style={{ height: circle ? circleLayout.headerHeight : 'wrap_content', flexDirection: 'row', width: 'match_parent', justifyContent: 'space-between', alignItems: 'center', marginBottom: circle ? circleLayout.headerGap : 12 }}>

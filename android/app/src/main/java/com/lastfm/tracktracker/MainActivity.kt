@@ -3,6 +3,7 @@ import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build
 import android.os.Bundle
+import com.lastfm.tracktracker.widget.WidgetLiveService
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
@@ -21,6 +22,17 @@ class MainActivity : ReactActivity() {
     SplashScreenManager.registerOnActivity(this)
     // @generated end expo-splashscreen
     super.onCreate(null)
+  }
+
+  override fun onResume() {
+    super.onResume()
+    WidgetLiveService.setAppVisible(true)
+    WidgetLiveService.startIfAllowed(this)
+  }
+
+  override fun onPause() {
+    WidgetLiveService.setAppVisible(false)
+    super.onPause()
   }
 
   /**

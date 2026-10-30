@@ -14,6 +14,7 @@ import { resolveArtwork } from '../services/artwork';
 const networkFetch = global.fetch;
 let fixtureTitle = 'Glue Song';
 let onAutomaticFetch: (() => void) | undefined;
+let onLiveFetch: ((title: string) => void) | undefined;
 global.fetch = (async (input: any, options: any) => {
   const url = String(typeof input === 'string' ? input : input.url);
   if (url === 'https://widget-fixture.test/cover.png') return networkFetch('http://127.0.0.1:8788/cover.png', options);
@@ -23,6 +24,7 @@ global.fetch = (async (input: any, options: any) => {
     const body = method === 'user.getrecenttracks' ? { recenttracks: { track: [{ name: fixtureTitle, artist: { '#text': 'beabadoobee' }, album: { '#text': 'Glue Song' }, image, '@attr': { nowplaying: 'true' } }] } }
       : method === 'album.getinfo' ? { album: { image } } : method === 'track.getinfo' ? { track: { album: { image } } } : { albums: [] };
     if (method === 'user.getrecenttracks' && fixtureTitle === 'Automatic refresh song') onAutomaticFetch?.();
+    if (method === 'user.getrecenttracks' && fixtureTitle.startsWith('Live refresh ')) onLiveFetch?.(fixtureTitle);
     return new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
   }
   return networkFetch(input, options);
@@ -39,7 +41,10 @@ function SmokeApp() {
   const [preview, setPreview] = useState(state);
   useEffect(() => {
     onAutomaticFetch = () => setStatus('Automatic refresh fetched');
+    onLiveFetch = title => setStatus('Live refresh fetched ' + title);
     const automatic = DeviceEventEmitter.addListener('WIDGET_SMOKE_AUTOMATIC', () => { fixtureTitle = 'Automatic refresh song'; setStatus('Automatic check armed'); });
+    // Only changes the fake upstream song. It never requests a widget update.
+    const live = DeviceEventEmitter.addListener('WIDGET_SMOKE_LIVE', (title: string) => { fixtureTitle = title; setStatus('Live check armed ' + title); });
     const subscription = DeviceEventEmitter.addListener('WIDGET_SMOKE_PATTERN', async (pattern: Pattern) => {
       if (!(pattern in patterns)) return;
       fixtureTitle = 'Glue Song';
@@ -49,7 +54,7 @@ function SmokeApp() {
       setPreview({ ...state, settings });
       setStatus('Pattern ready ' + pattern);
     });
-    return () => { subscription.remove(); automatic.remove(); onAutomaticFetch = undefined; };
+    return () => { subscription.remove(); automatic.remove(); live.remove(); onAutomaticFetch = undefined; onLiveFetch = undefined; };
   }, []);
   useEffect(() => { void (async () => {
     try {
