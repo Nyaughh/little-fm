@@ -6,7 +6,13 @@ import type { Pattern } from '../services/listening-model';
 const drawings = { ...userDoodles, ...themedDoodles, ...miffyDoodles };
 function draw(name: keyof typeof drawings, x: number, y: number, width: number, height: number) {
   const art = drawings[name];
-  return `<svg x="${x}" y="${y}" width="${width}" height="${height}" viewBox="0 0 ${art.width} ${art.height}" preserveAspectRatio="xMidYMid meet">${art.paths.map(part => `<path fill-opacity="${part.opacity}" d="${part.d}"/>`).join('')}</svg>`;
+  // Nested SVG viewports lose their offsets, inherited opacity and clipping
+  // state in Android's react-native-svg renderer. Keep one root viewport and
+  // position the original paths with a normal group transform instead.
+  const scale = Math.min(width / art.width, height / art.height);
+  const left = x + (width - art.width * scale) / 2;
+  const top = y + (height - art.height * scale) / 2;
+  return `<g data-art="${name}" data-width="${width}" data-height="${height}" transform="translate(${left},${top}) scale(${scale})">${art.paths.map(part => `<path fill-opacity="${part.opacity}" d="${part.d}"/>`).join('')}</g>`;
 }
 
 // Use the supplied pencil cat, with its original linework and no white rectangle.

@@ -1,0 +1,60 @@
+name: Test Android widgets
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-widget-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      EXPO_PUBLIC_LISTENING_API_URL: ${{ vars.LISTENING_API_URL }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v6.1.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      - run: npm ci
+      - name: Install build packages
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0" "ndk;26.1.10909125"'
+      - name: Build native test app
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleRelease :app:assembleAndroidTest --no-daemon --max-workers=2 -PreactNativeArchitectures=x86_64 -PlittleFmNativeTest=true
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Test real Android rendering
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          disable-animations: true
+          script: |
+            adb install android/app/build/outputs/apk/release/app-release.apk
+            adb install android/app/build/outputs/apk/androidTest/release/app-release-androidTest.apk
+            adb shell appwidget grantbind --package com.lastfm.tracktracker --user 0
+            adb logcat -c
+            adb shell am instrument -w com.lastfm.tracktracker.test/androidx.test.runner.AndroidJUnitRunner | tee widget-test-result.txt
+            adb logcat -d > widget-logcat.txt
+            adb pull /sdcard/Android/data/com.lastfm.tracktracker/files/widget-smoke widget-smoke || true
+            grep -q 'OK (1 test)' widget-test-result.txt
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: android-widget-smoke
+          path: |
+            widget-test-result.txt
+            widget-logcat.txt
+            widget-smoke/
+          retention-days: 7

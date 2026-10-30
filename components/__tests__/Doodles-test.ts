@@ -4,7 +4,7 @@ import { miffyDoodles } from '../user-miffy-doodles';
 
 const drawings = { ...themedDoodles, ...miffyDoodles };
 const count = (svg: string, name: keyof typeof drawings) => svg.split(drawings[name].paths[0].d).length - 1;
-const placements = (svg: string) => Array.from(svg.matchAll(/<g transform="translate\(([-\d.]+),([-\d.]+)\) rotate\(([-\d.]+)\)"><svg x="[^"]+" y="[^"]+" width="([^"]+)" height="([^"]+)"/g), match => {
+const placements = (svg: string) => Array.from(svg.matchAll(/<g transform="translate\(([-\d.]+),([-\d.]+)\) rotate\(([-\d.]+)\)"><g data-art="[^"]+" data-width="([^"]+)" data-height="([^"]+)"/g), match => {
   const [, x, y, angle, width, height] = match.map(Number);
   const radians = angle * Math.PI / 180;
   const halfWidth = (Math.abs(width * Math.cos(radians)) + Math.abs(height * Math.sin(radians))) / 2;
@@ -16,7 +16,7 @@ test.each([184, 316])('the %s-wide Alien widget has one face and one UFO', width
   const svg = widgetTexture(width, 238, '#34452F', '#EAF2D6', 'alien', width > 184);
   expect(count(svg, 'alien') + count(svg, 'alienFace')).toBe(1);
   expect(count(svg, 'ufo')).toBe(1);
-  for (const drawing of svg.matchAll(/<svg x="[^"]+" y="[^"]+" width="[^"]+" height="([^"]+)"/g)) {
+  for (const drawing of svg.matchAll(/data-height="([^"]+)"/g)) {
     expect(Number(drawing[1])).toBeLessThanOrEqual(42);
   }
 });
@@ -26,7 +26,7 @@ test.each([[150, 210, false], [184, 238, false], [316, 340, false], [280, 230, t
   for (const fruit of ['strawberry', 'pineapple', 'watermelon', 'grapes'] as const) {
     expect(count(svg, fruit)).toBe(1);
   }
-  for (const drawing of svg.matchAll(/<svg x="[^"]+" y="[^"]+" width="[^"]+" height="([^"]+)"/g)) {
+  for (const drawing of svg.matchAll(/data-height="([^"]+)"/g)) {
     expect(Number(drawing[1])).toBeLessThanOrEqual(42);
   }
   const motifs = placements(svg);
@@ -40,6 +40,13 @@ test.each([[150, 210, false], [184, 238, false], [316, 340, false], [280, 230, t
     expect(bounds.top).toBeGreaterThan(0);
     expect(bounds.bottom).toBeLessThan(height);
   }
+});
+
+test.each(['doodles', 'alien', 'fruits', 'miffy'] as const)('%s uses one SVG viewport so Android keeps every drawing positioned and translucent', pattern => {
+  const svg = widgetTexture(184, 238, '#422E32', '#F7E9E6', pattern);
+  expect(svg.match(/<svg\b/g)).toHaveLength(1);
+  expect(svg.match(/data-art=/g)?.length).toBeGreaterThanOrEqual(3);
+  expect(svg).toContain('opacity=".14"');
 });
 
 test('Alien placement follows the widget layout even when both cards have the same width', () => {

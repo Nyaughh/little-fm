@@ -11,7 +11,9 @@
 
     android:description="@string/widget_listeningcircle_description"
 
-    android:initialLayout="@layout/rn_widget"
+    android:initialLayout="@layout/widget_initial_circle"
+    android:previewImage="@drawable/widget_preview_circle"
+    android:previewLayout="@layout/widget_preview_circle"
 
 
 

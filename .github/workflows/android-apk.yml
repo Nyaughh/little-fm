@@ -29,6 +29,7 @@ jobs:
       - name: Validate app and backend
         run: |
           npm run typecheck
+          node scripts/check-android-entry.cjs
           npm test -- --watch=false
           npm --prefix backend test
       - name: Install Android build packages

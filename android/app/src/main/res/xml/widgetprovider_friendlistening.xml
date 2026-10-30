@@ -11,7 +11,9 @@
 
     android:description="@string/widget_friendlistening_description"
 
-    android:initialLayout="@layout/rn_widget"
+    android:initialLayout="@layout/widget_initial_friend"
+    android:previewImage="@drawable/widget_preview_friend"
+    android:previewLayout="@layout/widget_preview_friend"
 
 
 

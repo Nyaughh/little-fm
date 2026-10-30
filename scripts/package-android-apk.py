@@ -9,6 +9,9 @@ architectures = {'arm64-v8a', 'armeabi-v7a'}
 if source.resolve() == destination.resolve():
     raise SystemExit('Input and output APK paths must differ.')
 with zipfile.ZipFile(source) as archive:
+    bundle = archive.read('assets/index.android.bundle')
+    if any(marker not in bundle for marker in [b'RNWidgetBackgroundTask', b'FriendListening', b'ListeningCircle']):
+        raise SystemExit('Android widget registration is missing from the bundled app.')
     names = archive.namelist()
     if len(names) != len(set(names)):
         raise SystemExit('Duplicate APK entries are unsupported.')
