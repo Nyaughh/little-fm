@@ -18,6 +18,8 @@ Download the APK from [Releases](https://github.com/Nyaughh/little-fm/releases/l
 
 For a home screen widget, long-press an empty spot, tap **Widgets**, and find **little fm**.
 
+Once placed, long-press your widget and drag its edges to make it fit.
+
 Android only. No Last.fm password needed.
 
 ### App preview

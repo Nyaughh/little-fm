@@ -85,6 +85,8 @@ public class WidgetSmokeTest {
                 assertNotNull("Widget provider is missing", info);
                 assertTrue("Picker preview image missing", info.previewImage != 0);
                 assertTrue("Picker preview layout missing", info.previewLayout != 0);
+                assertEquals("Horizontal and vertical resizing must be enabled", AppWidgetProviderInfo.RESIZE_BOTH, info.resizeMode);
+                assertTrue("The compact resize height is missing", info.minResizeHeight > 0 && info.minResizeHeight <= Math.round(140 * context.getResources().getDisplayMetrics().density));
                 AppWidgetHost host = new AppWidgetHost(context, width);
                 try {
                     host.startListening();
@@ -121,6 +123,42 @@ public class WidgetSmokeTest {
                     save(bitmap.get(), pattern + "-" + name + "-background");
                     Thread.sleep(3000); // Allow the native scrolling collection to bind its rows.
                     save(instrumentation.getUiAutomation().takeScreenshot(), pattern + "-" + name + "-launcher");
+                    if (pattern.equals("doodles")) {
+                        // Change the options on the same placed widget, as a
+                        // launcher does when its resize handles are dragged.
+                        int[][] sizes = name.equals("FriendListening")
+                            ? new int[][]{{150, 140}, {316, 140}, {400, 340}}
+                            : new int[][]{{210, 140}, {400, 340}};
+                        for (int[] size : sizes) {
+                            Bundle resized = new Bundle();
+                            resized.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, size[0]);
+                            resized.putInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, size[0]);
+                            resized.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, size[1]);
+                            resized.putInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, size[1]);
+                            manager.updateAppWidgetOptions(id, resized);
+                            instrumentation.runOnMainSync(() -> {
+                                float density = context.getResources().getDisplayMetrics().density;
+                                view.get().setLayoutParams(new FrameLayout.LayoutParams(Math.round(size[0] * density), Math.round(size[1] * density)));
+                            });
+                            AtomicReference<Bitmap> resizedBitmap = new AtomicReference<>();
+                            deadline = System.currentTimeMillis() + 30000;
+                            while (resizedBitmap.get() == null && System.currentTimeMillis() < deadline) {
+                                instrumentation.runOnMainSync(() -> {
+                                    ImageView image = view.get().findViewById(imageId);
+                                    if (image != null && image.getDrawable() instanceof BitmapDrawable) {
+                                        Bitmap candidate = ((BitmapDrawable) image.getDrawable()).getBitmap();
+                                        float density = context.getResources().getDisplayMetrics().density;
+                                        if (Math.abs(candidate.getWidth() - size[0] * density) < 3 && Math.abs(candidate.getHeight() - size[1] * density) < 3) resizedBitmap.set(candidate);
+                                    }
+                                });
+                                Thread.sleep(250);
+                            }
+                            assertNotNull(name + " did not re-render at " + size[0] + "x" + size[1], resizedBitmap.get());
+                            save(resizedBitmap.get(), name + "-resized-" + size[0] + "x" + size[1]);
+                            Thread.sleep(1500);
+                            save(instrumentation.getUiAutomation().takeScreenshot(), name + "-resized-" + size[0] + "x" + size[1] + "-launcher");
+                        }
+                    }
                     instrumentation.runOnMainSync(() -> ((ViewGroup) view.get().getParent()).removeView(view.get()));
                 } finally { host.deleteHost(); host.stopListening(); }
                 }

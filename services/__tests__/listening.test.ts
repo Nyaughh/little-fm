@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { defaultSettings, isLive, normalizeUsernames, parseRecentTrack, statusLabel, widgetRows } from '../listening-model';
+import { defaultSettings, isLive, normalizeUsernames, parseRecentTrack, statusLabel, widgetRows, widgetStatusLabel } from '../listening-model';
 import { loadListeningState, refreshListeningState, saveUsernames, saveWidgetSettings } from '../listening';
 
 jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
@@ -22,6 +22,18 @@ test('old and failed snapshots never claim live listening', () => {
   expect(isLive(row, 1120001)).toBe(false);
   expect(isLive({ ...row, error: 'offline' }, 1001000)).toBe(false);
   expect(statusLabel({ ...row, error: 'offline' })).toBe('Saved song · offline');
+});
+
+test('widget status identifies playback without claiming an old snapshot is live', () => {
+  const now = new Date(2026, 9, 31, 14, 32).getTime();
+  const row = { username: 'mochi', currentTrack: { title: 'Song', artist: 'Artist', isNowPlaying: true }, checkedAt: now };
+  expect(widgetStatusLabel(row, now)).toBe('Listening 14:32');
+  expect(widgetStatusLabel(row, now, true)).toBe('Live 14:32');
+  expect(widgetStatusLabel(row, now + 30 * 60000)).toBe('Listening 14:32');
+  expect(widgetStatusLabel(row, now + 86400000)).toBe('Heard 31/10');
+  expect(widgetStatusLabel({ ...row, error: 'No connection' }, now)).toBe('Offline');
+  expect(widgetStatusLabel({ ...row, currentTrack: null }, now)).toBe('No songs');
+  expect(widgetStatusLabel({ ...row, currentTrack: { ...row.currentTrack, isNowPlaying: false, playedAt: now - 12 * 60000 } }, now)).toBe('12m ago');
 });
 test('featured friend is selected and the scrollable circle contains everyone', () => {
   const state = { usernames: ['mochi', 'fern', 'june', 'sky'], tracks: [], settings: { ...defaultSettings, friend: 'fern' } };

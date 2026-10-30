@@ -12,7 +12,7 @@ import { resolveArtwork } from '../services/artwork';
 registerWidgets();
 const state: ListeningState = {
   usernames: ['mochi', 'fern', 'june', 'olive'], settings: defaultSettings,
-  tracks: ['mochi', 'fern', 'june', 'olive'].map(username => ({ username, currentTrack: { title: 'Glue Song', artist: 'beabadoobee', album: 'Glue Song', isNowPlaying: false } })),
+  tracks: ['mochi', 'fern', 'june', 'olive'].map((username, index) => ({ username, checkedAt: Date.now(), currentTrack: { title: 'Glue Song', artist: 'beabadoobee', album: 'Glue Song', isNowPlaying: index === 0, playedAt: index === 0 ? undefined : Date.now() - index * 12 * 60000 } })),
 };
 function SmokeApp() {
   const [status, setStatus] = useState('Preparing native widgets');

@@ -4,12 +4,13 @@ export default {
   expo: {
     name: "little fm",
     slug: "little-fm",
-    version: "1.0.2",
+    version: "1.0.3",
     orientation: "portrait",
     scheme: "listeningcircle",
     newArchEnabled: false,
     plugins: [
       "expo-router",
+      "./scripts/with-widget-min-sizes.cjs",
       ["react-native-android-widget", {
         widgets: [
           {
@@ -48,7 +49,7 @@ export default {
       favicon: "./assets/images/favicon.png"
     },
     android: {
-      versionCode: 3,
+      versionCode: 4,
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
         backgroundColor: "#FBE6E4"

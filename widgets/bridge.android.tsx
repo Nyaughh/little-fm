@@ -14,6 +14,9 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
   if (props.widgetAction === 'WIDGET_DELETED' || !names.includes(props.widgetInfo.widgetName)) return;
   const circle = props.widgetInfo.widgetName === 'ListeningCircle';
   props.renderWidget(<ListeningWidget state={await withWidgetArtwork(await loadListeningState(), false)} circle={circle} height={props.widgetInfo.height} width={props.widgetInfo.width} />);
+  // A resize should reflow immediately, including offline, without starting
+  // another Last.fm request for every drag of a launcher resize handle.
+  if (props.widgetAction === 'WIDGET_RESIZED') return;
   const state = await withWidgetArtwork(await refreshListeningState());
   props.renderWidget(<ListeningWidget state={state} circle={circle} height={props.widgetInfo.height} width={props.widgetInfo.width} />);
 }

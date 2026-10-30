@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
-import { tones, widgetRows, type ListeningState } from '../services/listening-model';
+import { tones, widgetRows, widgetStatusLabel, type ListeningState } from '../services/listening-model';
 import { AlbumCover } from './AlbumCover';
 import { widgetTexture } from './doodles';
 import { circleLayout, circleViewportHeight } from '../services/widget-layout';
@@ -16,7 +16,10 @@ export function WidgetPreview({ state, circle = false, onRefresh, maxWidth = 316
     <View style={{ ...(circle ? { flex: 1 } : { width: '100%' }), gap: 4 }}>
       <Text numberOfLines={circle ? 1 : 2} style={{ color: palette.ink, fontSize: circle ? 13 : 16, fontWeight: '600', letterSpacing: -.2 }}>{row.currentTrack?.title || (row.error ? 'Could not load' : 'Quiet for now')}</Text>
       <Text numberOfLines={1} style={{ color: palette.muted, fontSize: 11 }}>{row.currentTrack?.artist || 'No recent songs'}</Text>
-      <Text numberOfLines={1} style={{ color: palette.accent, fontSize: 10 }}>{row.username}{row.error ? ' · offline' : ''}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <Text numberOfLines={1} style={{ color: palette.accent, fontSize: 10, flexShrink: 1 }}>{row.username}</Text>
+        <Text numberOfLines={1} style={{ color: palette.muted, fontSize: 10 }}>{` · ${widgetStatusLabel(row)}`}</Text>
+      </View>
     </View>
   </View>);
   return <View style={{ width, height, borderRadius: 24, overflow: 'hidden', backgroundColor: palette.background }}>
