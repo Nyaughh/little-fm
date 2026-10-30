@@ -8,6 +8,7 @@ import android.appwidget.AppWidgetProviderInfo;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.view.ContextThemeWrapper;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.drawable.BitmapDrawable;
@@ -24,6 +25,9 @@ import org.junit.runner.RunWith;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.concurrent.atomic.AtomicReference;
+import com.facebook.react.ReactApplication;
+import com.facebook.react.bridge.ReactContext;
+import com.facebook.react.modules.core.DeviceEventManagerModule;
 import static org.junit.Assert.*;
 
 @RunWith(AndroidJUnit4.class)
@@ -61,7 +65,19 @@ public class WidgetSmokeTest {
             }
             save(instrumentation.getUiAutomation().takeScreenshot(), "in-app-previews");
             assertTrue("Native app setup did not finish", ready.get());
-            for (String name : new String[]{"FriendListening", "ListeningCircle"}) {
+            for (String pattern : new String[]{"doodles", "alien", "fruits", "miffy"}) {
+                ReactContext reactContext = ((ReactApplication) context.getApplicationContext()).getReactNativeHost().getReactInstanceManager().getCurrentReactContext();
+                assertNotNull("React runtime is missing", reactContext);
+                reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class).emit("WIDGET_SMOKE_PATTERN", pattern);
+                ready.set(false);
+                deadline = System.currentTimeMillis() + 15000;
+                while (!ready.get() && System.currentTimeMillis() < deadline) {
+                    instrumentation.runOnMainSync(() -> ready.set(hasText(activity.getWindow().getDecorView(), "Pattern ready " + pattern)));
+                    Thread.sleep(250);
+                }
+                assertTrue("Pattern did not update: " + pattern, ready.get());
+                save(instrumentation.getUiAutomation().takeScreenshot(), pattern + "-app-previews");
+                for (String name : new String[]{"FriendListening", "ListeningCircle"}) {
                 int width = name.equals("FriendListening") ? 184 : 316;
                 AppWidgetManager manager = AppWidgetManager.getInstance(context);
                 ComponentName provider = new ComponentName(context, context.getPackageName() + ".widget." + name);
@@ -81,7 +97,10 @@ public class WidgetSmokeTest {
                     assertTrue("Widget bind permission missing", manager.bindAppWidgetIdIfAllowed(id, provider, options));
                     AtomicReference<AppWidgetHostView> view = new AtomicReference<>();
                     instrumentation.runOnMainSync(() -> {
-                        AppWidgetHostView hostView = host.createView(activity, id, info);
+                        // AppCompat's activity inflater substitutes an image class
+                        // that RemoteViews forbids. Launchers use framework views.
+                        ContextThemeWrapper widgetContext = new ContextThemeWrapper(context, android.R.style.Theme_Material_Light_NoActionBar);
+                        AppWidgetHostView hostView = host.createView(widgetContext, id, info);
                         float density = context.getResources().getDisplayMetrics().density;
                         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(Math.round(width * density), Math.round(238 * density));
                         activity.addContentView(hostView, params);
@@ -99,11 +118,12 @@ public class WidgetSmokeTest {
                     }
                     assertNotNull(name + " remained blank: Android headless rendering never completed", bitmap.get());
                     assertTrue("Widget bitmap has no visible background", android.graphics.Color.alpha(bitmap.get().getPixel(bitmap.get().getWidth() / 2, bitmap.get().getHeight() / 2)) > 200);
-                    save(bitmap.get(), name + "-background");
+                    save(bitmap.get(), pattern + "-" + name + "-background");
                     Thread.sleep(3000); // Allow the native scrolling collection to bind its rows.
-                    save(instrumentation.getUiAutomation().takeScreenshot(), name + "-launcher");
+                    save(instrumentation.getUiAutomation().takeScreenshot(), pattern + "-" + name + "-launcher");
                     instrumentation.runOnMainSync(() -> ((ViewGroup) view.get().getParent()).removeView(view.get()));
                 } finally { host.deleteHost(); host.stopListening(); }
+                }
             }
             instrumentation.runOnMainSync(() -> ready.set(hasText(activity.getWindow().getDecorView(), "Artwork ready")));
             assertTrue("Android failed to decode the real album cover", ready.get());

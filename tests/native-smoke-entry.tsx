@@ -1,11 +1,11 @@
 // Included only by -PlittleFmNativeTest. Never part of the release entry.
 import React, { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import { DeviceEventEmitter, Text, View } from 'react-native';
 import { registerRootComponent } from 'expo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registerWidgets, syncWidgets } from '../widgets/bridge';
 import { WidgetPreview } from '../components/WidgetPreview';
-import { defaultSettings, type ListeningState } from '../services/listening-model';
+import { defaultSettings, patterns, type Pattern, type ListeningState } from '../services/listening-model';
 import { saveUsernames, saveWidgetSettings } from '../services/listening';
 import { resolveArtwork } from '../services/artwork';
 
@@ -17,6 +17,18 @@ const state: ListeningState = {
 function SmokeApp() {
   const [status, setStatus] = useState('Preparing native widgets');
   const [coverReady, setCoverReady] = useState(false);
+  const [preview, setPreview] = useState(state);
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('WIDGET_SMOKE_PATTERN', async (pattern: Pattern) => {
+      if (!(pattern in patterns)) return;
+      const settings = { ...defaultSettings, pattern };
+      await saveWidgetSettings(settings);
+      await syncWidgets();
+      setPreview({ ...state, settings });
+      setStatus('Pattern ready ' + pattern);
+    });
+    return () => subscription.remove();
+  }, []);
   useEffect(() => { void (async () => {
     try {
       await saveUsernames(state.usernames);
@@ -32,8 +44,8 @@ function SmokeApp() {
   return <View style={{ flex: 1, paddingTop: 36, gap: 16, alignItems: 'center', backgroundColor: '#FAF8F2' }}>
     <Text>{status}</Text>
     <Text>{coverReady ? 'Artwork ready' : 'Artwork missing'}</Text>
-    <WidgetPreview state={state} />
-    <WidgetPreview state={state} circle />
+    <WidgetPreview state={preview} />
+    <WidgetPreview state={preview} circle />
   </View>;
 }
 registerRootComponent(SmokeApp);
