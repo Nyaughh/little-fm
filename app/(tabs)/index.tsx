@@ -68,7 +68,7 @@ export default function HomeScreen() {
 
   return <SafeAreaView style={{ flex: 1, backgroundColor: c.paper }}>
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={s.page} keyboardShouldPersistTaps="handled" refreshControl={<RefreshControl refreshing={fm.loading} onRefresh={fm.refreshTracks} tintColor={c.green} />}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.page} keyboardShouldPersistTaps="handled" refreshControl={<RefreshControl refreshing={fm.loading} onRefresh={fm.refreshTracks} tintColor={c.green} />}>
         <View style={s.between}>
           <Text style={s.wordmark}>little fm<Text style={{ color: c.rose }}>.</Text></Text>
         </View>

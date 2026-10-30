@@ -23,6 +23,6 @@ Android only. No Last.fm password needed.
 ### App preview
 
 <p align="center">
-  <img src="docs/screenshots/home.png" width="260" alt="The home page with the original cat drawing" />
-  <img src="docs/screenshots/widgets.png" width="260" alt="Small and scrolling widgets with album covers and hand-drawn doodles" />
+  <a href="docs/screenshots/home.jpg"><img src="docs/screenshots/home.jpg" width="300" alt="The home page with the original cat drawing" /></a>
+  <a href="docs/screenshots/widgets.jpg"><img src="docs/screenshots/widgets.jpg" width="300" alt="Small and scrolling widgets with album covers and hand-drawn doodles" /></a>
 </p>
