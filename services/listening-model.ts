@@ -64,18 +64,13 @@ export function statusLabel(row: UserTrack, now = Date.now()): string {
   if (minutes < 1440) return `${Math.floor(minutes / 60)}h ago`;
   return `${Math.floor(minutes / 1440)}d ago`;
 }
-export function widgetStatusLabel(row: UserTrack, now = Date.now(), compact = false): string {
+export function widgetStatusLabel(row: UserTrack, now = Date.now()): string {
   if (row.error) return 'Offline';
   if (!row.currentTrack) return 'No songs';
-  // Include the check time: Android keeps this snapshot until its next update.
-  // "Listening now" would otherwise stay on screen after playback has stopped.
-  if (row.currentTrack.isNowPlaying && row.checkedAt) {
-    const date = new Date(row.checkedAt);
-    const time = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-    const today = date.toDateString() === new Date(now).toDateString();
-    return today ? `${compact ? 'Live' : 'Listening'} ${time}` : `Heard ${date.getDate()}/${date.getMonth() + 1}`;
-  }
-  return row.currentTrack.playedAt ? statusLabel(row, now) : 'Last song';
+  if (isLive(row, now)) return 'listening';
+  // An old now-playing snapshot tells us when listening was last observed.
+  const playedAt = row.currentTrack.playedAt || (row.currentTrack.isNowPlaying ? row.checkedAt : undefined);
+  return playedAt ? statusLabel({ ...row, currentTrack: { ...row.currentTrack, isNowPlaying: false, playedAt } }, now) : 'Last song';
 }
 export function widgetRows(state: ListeningState, circle: boolean): UserTrack[] {
   const rows = state.usernames.map(username => state.tracks.find(row => row.username === username) ?? { username, currentTrack: null });

@@ -27,10 +27,9 @@ test('old and failed snapshots never claim live listening', () => {
 test('widget status identifies playback without claiming an old snapshot is live', () => {
   const now = new Date(2026, 9, 31, 14, 32).getTime();
   const row = { username: 'mochi', currentTrack: { title: 'Song', artist: 'Artist', isNowPlaying: true }, checkedAt: now };
-  expect(widgetStatusLabel(row, now)).toBe('Listening 14:32');
-  expect(widgetStatusLabel(row, now, true)).toBe('Live 14:32');
-  expect(widgetStatusLabel(row, now + 30 * 60000)).toBe('Listening 14:32');
-  expect(widgetStatusLabel(row, now + 86400000)).toBe('Heard 31/10');
+  expect(widgetStatusLabel(row, now)).toBe('listening');
+  expect(widgetStatusLabel(row, now + 30 * 60000)).toBe('30m ago');
+  expect(widgetStatusLabel(row, now + 86400000)).toBe('1d ago');
   expect(widgetStatusLabel({ ...row, error: 'No connection' }, now)).toBe('Offline');
   expect(widgetStatusLabel({ ...row, currentTrack: null }, now)).toBe('No songs');
   expect(widgetStatusLabel({ ...row, currentTrack: { ...row.currentTrack, isNowPlaying: false, playedAt: now - 12 * 60000 } }, now)).toBe('12m ago');

@@ -56,6 +56,6 @@ test('status shares the username line and stays visible for a long username', ()
   const tree = renderer.create(<ListeningWidget state={{ ...state, usernames: [username], tracks: [{ ...state.tracks[0], username, currentTrack: { ...state.tracks[0].currentTrack, playedAt: Date.now() - 12 * 60000 } }] }} />);
   const name = tree.root.findAllByType(TextWidget).find(node => node.props.text === username)!;
   expect(name.props.truncate).toBe('END');
-  expect(name.parent?.parent?.findAllByType(TextWidget).map(node => node.props.text)).toEqual([username, ' · 12m ago']);
+  expect(name.parent?.parent?.findAllByType(TextWidget).map(node => node.props.text)).toEqual([username, '12m ago']);
   tree.unmount();
 });

@@ -21,7 +21,7 @@ export function ListeningWidget({ state, circle = false, height = 238, width = 3
         <TextWidget text={row.currentTrack?.artist || 'No recent songs'} style={{ fontSize: 11, color: palette.muted, marginTop: 3 }} maxLines={1} truncate="END" />
         <FlexWidget style={{ width: 'match_parent', flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
           <FlexWidget style={{ flex: 1, width: 0 }}><TextWidget text={row.username} style={{ width: 'match_parent', fontSize: 10, color: palette.accent }} maxLines={1} truncate="END" /></FlexWidget>
-          <TextWidget text={` · ${widgetStatusLabel(row, Date.now(), !circle && height < 210)}`} style={{ fontSize: 10, color: palette.muted }} maxLines={1} />
+          <TextWidget text={widgetStatusLabel(row)} style={{ fontSize: 10, color: palette.muted, marginLeft: 6 }} maxLines={1} />
         </FlexWidget>
       </FlexWidget>
     </FlexWidget>

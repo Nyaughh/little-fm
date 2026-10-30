@@ -18,7 +18,7 @@ export function WidgetPreview({ state, circle = false, onRefresh, maxWidth = 316
       <Text numberOfLines={1} style={{ color: palette.muted, fontSize: 11 }}>{row.currentTrack?.artist || 'No recent songs'}</Text>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <Text numberOfLines={1} style={{ color: palette.accent, fontSize: 10, flexShrink: 1 }}>{row.username}</Text>
-        <Text numberOfLines={1} style={{ color: palette.muted, fontSize: 10 }}>{` · ${widgetStatusLabel(row)}`}</Text>
+        <Text numberOfLines={1} style={{ color: palette.muted, fontSize: 10, marginLeft: 6 }}>{widgetStatusLabel(row)}</Text>
       </View>
     </View>
   </View>);
