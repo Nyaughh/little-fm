@@ -1,0 +1,6 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "functions": { "api/lastfm.mjs": { "maxDuration": 10 } },
+  "git": { "deploymentEnabled": false }
+}

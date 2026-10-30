@@ -1,0 +1,49 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      EXPO_PUBLIC_LISTENING_API_URL: ${{ vars.LISTENING_API_URL }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v6.1.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Check app API configuration
+        run: |
+          node -e 'const u = new URL(process.env.EXPO_PUBLIC_LISTENING_API_URL); if (u.protocol !== "https:" || u.pathname !== "/api/lastfm") process.exit(1)'
+      - run: npm ci
+      - name: Validate app and backend
+        run: |
+          npm run typecheck
+          npm test -- --watch=false
+          npm --prefix backend test
+      - name: Install Android build packages
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0" "ndk;26.1.10909125"'
+      - name: Build release APK
+        working-directory: android
+        env:
+          NODE_ENV: production
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleRelease --no-daemon --max-workers=2 -PreactNativeArchitectures=arm64-v8a,armeabi-v7a
+      - name: Save APK for local signing
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: little-fm-unsigned-apk
+          path: android/app/build/outputs/apk/release/*-unsigned.apk
+          if-no-files-found: error
+          retention-days: 7
