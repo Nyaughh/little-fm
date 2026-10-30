@@ -48,6 +48,13 @@ test('color and pattern choices survive changes independently', async () => {
   await saveWidgetSettings({ ...next, pattern: 'alien' });
   expect((await loadListeningState()).settings).toEqual({ ...next, pattern: 'alien' });
 });
+
+test.each(['butter', 'lilac'] as const)('the new %s color and Miffy pattern survive restart independently', async tone => {
+  await saveWidgetSettings({ ...defaultSettings, tone, pattern: 'miffy' });
+  expect((await loadListeningState()).settings).toEqual({ ...defaultSettings, tone, pattern: 'miffy' });
+  await saveWidgetSettings({ ...defaultSettings, tone, pattern: 'doodles' });
+  expect((await loadListeningState()).settings).toEqual({ ...defaultSettings, tone, pattern: 'doodles' });
+});
 test('unknown patterns recover to the default without losing the selected color', async () => {
   await AsyncStorage.setItem('@lastfm_widget_settings_v1', JSON.stringify({ tone: 'sage', pattern: 'missing', friend: null }));
   expect((await loadListeningState()).settings).toEqual({ ...defaultSettings, tone: 'sage' });

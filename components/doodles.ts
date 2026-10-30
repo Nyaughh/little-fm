@@ -1,8 +1,9 @@
 import { userDoodles } from './user-doodles';
 import { themedDoodles } from './user-themed-doodles';
+import { miffyDoodles } from './user-miffy-doodles';
 import type { Pattern } from '../services/listening-model';
 
-const drawings = { ...userDoodles, ...themedDoodles };
+const drawings = { ...userDoodles, ...themedDoodles, ...miffyDoodles };
 function draw(name: keyof typeof drawings, x: number, y: number, width: number, height: number) {
   const art = drawings[name];
   return `<svg x="${x}" y="${y}" width="${width}" height="${height}" viewBox="0 0 ${art.width} ${art.height}" preserveAspectRatio="xMidYMid meet">${art.paths.map(part => `<path fill-opacity="${part.opacity}" d="${part.d}"/>`).join('')}</svg>`;
@@ -12,7 +13,7 @@ function draw(name: keyof typeof drawings, x: number, y: number, width: number, 
 export const catDoodle = `<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 180 180"><g fill="#625F55">${draw('cat', 0, 0, 180, 180)}</g></svg>`;
 
 export function patternIcon(pattern: Pattern) {
-  const art = pattern === 'alien' ? 'alienFace' : pattern === 'fruits' ? 'strawberry' : 'flower';
+  const art = pattern === 'miffy' ? 'miffyBunny' : pattern === 'alien' ? 'alienFace' : pattern === 'fruits' ? 'strawberry' : 'flower';
   return `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="28" viewBox="0 0 26 28"><g fill="#625F55">${draw(art, 2, 1, 22, 26)}</g></svg>`;
 }
 
@@ -21,9 +22,9 @@ export function coverFallbackSvg(ink = '#817666', background = '#EEE9DD') {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect width="80" height="80" rx="12" fill="${background}"/><g fill="none" stroke="${ink}" stroke-opacity=".55" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M45 49V26l11 3"/><ellipse cx="39" cy="50" rx="6" ry="4" transform="rotate(-16 39 50)"/></g></svg>`;
 }
 
-function scatteredMotifs(width: number, height: number, pattern: 'alien' | 'fruits', circle: boolean) {
+function scatteredMotifs(width: number, height: number, pattern: 'alien' | 'fruits' | 'miffy', circle: boolean) {
   // A stable random seed keeps the artwork still when songs or colors change.
-  let seed = (Math.imul(Math.round(width), 73856093) ^ Math.imul(Math.round(height), 19349663) ^ (pattern === 'alien' ? 8271 : 21943)) >>> 0;
+  let seed = (Math.imul(Math.round(width), 73856093) ^ Math.imul(Math.round(height), 19349663) ^ (pattern === 'alien' ? 8271 : pattern === 'miffy' ? 39317 : 21943)) >>> 0;
   const random = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
   const motif = (art: keyof typeof drawings, x: number, y: number, size: number, rotation: number) => {
     const artWidth = size * drawings[art].width / drawings[art].height;
@@ -36,8 +37,27 @@ function scatteredMotifs(width: number, height: number, pattern: 'alien' | 'frui
       motif('star', circle ? width / 2 : 28, circle ? height / 2 : height - 28, 17, -15),
     ].join('');
   }
+  if (pattern === 'miffy') {
+    // Leave open space around each drawing, with a lighter compact layout.
+    const placements: [keyof typeof drawings, number, number, number, number][] = circle ? [
+      ['miffyBunny', width - 34, 70, 36, -7],
+      ['miffyCoffee', Math.max(104, width * .55), 66, 26, 6],
+      ['miffyHeart', Math.max(90, width * .36), height * .48, 14, -12],
+      ['miffyStar', width * .67, height * .52, 15, 10],
+      ['miffyFlower', width - 32, height * .64, 38, 8],
+      ['miffyHappy', Math.max(92, width * .43), height - 33, 32, -7],
+      ['miffyNotes', width * .72, height - 27, 19, -8],
+    ] : [
+      ['miffyBunny', width - 32, 70, 34, -7],
+      ['miffyHeart', width - 24, height * .52, 14, -12],
+      ['miffyFlower', width - 32, height - 65, 34, 8],
+      ['miffyHappy', 28, height - 28, 30, -7],
+      ['miffyNotes', width * .61, height - 24, 18, -8],
+    ];
+    return placements.map(([art, x, y, size, rotation]) => motif(art, x, y, size, rotation)).join('');
+  }
   const artOrder: (keyof typeof drawings)[] = ['strawberry', 'pineapple', 'watermelon', 'grapes'];
-  // One of each fruit, with a stable shuffle for each widget size.
+  // One of each supplied drawing, with a stable shuffle for each widget size.
   for (let i = artOrder.length - 1; i > 0; i--) {
     const j = Math.floor(random() * (i + 1));
     [artOrder[i], artOrder[j]] = [artOrder[j], artOrder[i]];
@@ -63,7 +83,7 @@ function scatteredMotifs(width: number, height: number, pattern: 'alien' | 'frui
     for (let candidate = 0; candidate < 48; candidate++) {
       const next = { x: minX + random() * (maxX - minX), y: minY + random() * (maxY - minY) };
       // The small cover occupies the upper left. The circle's whole cover
-      // column stays empty so scrolling album covers never hide a fruit.
+      // column stays empty so scrolling album covers never hide a drawing.
       if (!circle && next.x - halfWidth < 90 && next.y - halfHeight < 132) continue;
       const distance = points.length ? Math.min(...points.map(p => (p.x - next.x) ** 2 + (p.y - next.y) ** 2)) : 1;
       if (distance > bestDistance) { point = next; bestDistance = distance; }
@@ -82,7 +102,7 @@ export function widgetTexture(width: number, height: number, ink: string, backgr
   const dots = Array.from({ length: Math.ceil(height / 12) }, (_, row) =>
     Array.from({ length: Math.ceil(width / 13) }, (_, col) => `<circle cx="${col * 13 + (row % 2 ? 6 : 2)}" cy="${row * 12 + 3}" r=".45"/>`).join('')).join('');
   let motifs: string;
-  if (pattern === 'alien' || pattern === 'fruits') {
+  if (pattern === 'alien' || pattern === 'fruits' || pattern === 'miffy') {
     motifs = scatteredMotifs(width, height, pattern, circle);
   } else {
     motifs = `<g transform="translate(${width - 68},${height - 61}) rotate(-12)">${draw('flower', 3, -4, 54, 65)}</g>

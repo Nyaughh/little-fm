@@ -7,8 +7,10 @@ export const tones = {
   cream: { name: 'Oat', background: '#F3EEE2', ink: '#443D31', muted: '#7B7364', accent: '#8E6B40', disc: '#CABB9A' },
   alien: { name: 'Moss', background: '#EAF2D6', ink: '#34452F', muted: '#68785A', accent: '#64864E', disc: '#C4D5A9' },
   fruits: { name: 'Berry', background: '#FBE6E4', ink: '#56333D', muted: '#946970', accent: '#B76673', disc: '#E9ACB1' },
+  butter: { name: 'Butter', background: '#FFF2C5', ink: '#51432B', muted: '#7B683C', accent: '#88652B', disc: '#E6CE86' },
+  lilac: { name: 'Lilac', background: '#EEE5F5', ink: '#4A3855', muted: '#75617F', accent: '#7E578F', disc: '#CBB0DF' },
 } as const;
-export const patterns = { doodles: 'Doodles', alien: 'Alien', fruits: 'Fruits' } as const;
+export const patterns = { doodles: 'Doodles', alien: 'Alien', fruits: 'Fruits', miffy: 'Miffy' } as const;
 export type Tone = keyof typeof tones;
 export type Pattern = keyof typeof patterns;
 export type WidgetSettings = { tone: Tone; pattern: Pattern; friend: string | null };

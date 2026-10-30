@@ -1,7 +1,9 @@
 import { widgetTexture } from '../doodles';
 import { themedDoodles } from '../user-themed-doodles';
+import { miffyDoodles } from '../user-miffy-doodles';
 
-const count = (svg: string, name: keyof typeof themedDoodles) => svg.split(themedDoodles[name].paths[0].d).length - 1;
+const drawings = { ...themedDoodles, ...miffyDoodles };
+const count = (svg: string, name: keyof typeof drawings) => svg.split(drawings[name].paths[0].d).length - 1;
 const placements = (svg: string) => Array.from(svg.matchAll(/<g transform="translate\(([-\d.]+),([-\d.]+)\) rotate\(([-\d.]+)\)"><svg x="[^"]+" y="[^"]+" width="([^"]+)" height="([^"]+)"/g), match => {
   const [, x, y, angle, width, height] = match.map(Number);
   const radians = angle * Math.PI / 180;
@@ -54,4 +56,26 @@ test('Alien placement follows the widget layout even when both cards have the sa
   expect(small[2].y).toBeGreaterThan(238 * .75);
   expect(circle[2].x).toBeCloseTo(316 / 2);
   expect(circle[2].y).toBeCloseTo(238 / 2);
+});
+
+test.each([[150, 210, false], [184, 238, false], [316, 340, false], [280, 230, true], [316, 238, true]] as const)('the %s-by-%s Miffy widget keeps drawings spaced, visible and unique (circle: %s)', (width, height, circle) => {
+  const svg = widgetTexture(width, height, '#51432B', '#FFF2C5', 'miffy', circle);
+  for (const drawing of Object.keys(miffyDoodles) as (keyof typeof miffyDoodles)[]) {
+    if (circle) expect(count(svg, drawing)).toBe(1);
+    else expect(count(svg, drawing)).toBeLessThanOrEqual(1);
+  }
+  const motifs = placements(svg);
+  expect(motifs).toHaveLength(circle ? 7 : 5);
+  for (const bounds of motifs) {
+    if (circle) expect(bounds.left).toBeGreaterThan(62);
+    else expect(bounds.right < 16 || bounds.left > 82 || bounds.bottom < 48 || bounds.top > 128).toBe(true);
+    expect(bounds.left).toBeGreaterThan(0);
+    expect(bounds.right).toBeLessThan(width);
+    expect(bounds.top).toBeGreaterThan(0);
+    expect(bounds.bottom).toBeLessThan(height);
+  }
+  for (let i = 0; i < motifs.length; i++) for (let j = i + 1; j < motifs.length; j++) {
+    const a = motifs[i], b = motifs[j];
+    expect(a.right + 4 < b.left || b.right + 4 < a.left || a.bottom + 4 < b.top || b.bottom + 4 < a.top).toBe(true);
+  }
 });

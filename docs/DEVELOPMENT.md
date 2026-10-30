@@ -25,9 +25,10 @@ Deploy `backend/` as a Vercel project with Node 22. Add `LASTFM_API_KEY` as a se
 
 - **A little listening**: the selected friend's latest checked song.
 - **Listening circle**: a native scrolling list of every saved friend; recent live fetches are sorted first.
-- Choose the pattern (Doodles, Alien, or Fruits) and color (Petal, Sage, Oat, Moss, or Berry) separately. Any pattern works with any color. Existing theme selections retain their appearance when upgraded.
+- Choose the pattern (Doodles, Alien, Fruits, or Miffy) and color (Petal, Sage, Oat, Moss, Berry, Butter, or Lilac) separately. Any pattern works with any color. Existing theme selections retain their appearance when upgraded.
 - Alien places one UFO, one face, and one small star. The circle has drawings at the top right, bottom right, and center; the small widget uses top right, bottom right, and bottom left.
 - Fruits shows one each of the supplied strawberry, pineapple, watermelon, and grape drawings, plus a small heart. Drawings avoid the small album cover and the circle's entire scrolling cover column, including rotated corners.
+- Miffy uses five spaced drawings in the compact card and all seven in the circle, with the same quiet opacity and cover-safe placement. The main view keeps the original cat. All supplied source PNGs are retained unchanged.
 - Patterns keep their smaller scale and existing opacity. Their layout stays still during song refreshes and color changes.
 - The Widgets tab saves the featured friend and palette for **all copies**.
 - Tap the widget body to open the app. Tap ↻ to fetch songs without opening it.
