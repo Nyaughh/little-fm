@@ -25,6 +25,11 @@ import org.junit.runner.RunWith;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.TimeUnit;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkManager;
+import com.lastfm.tracktracker.widget.WidgetRefreshWorker;
+import com.lastfm.tracktracker.widget.WidgetRefreshScheduler;
 import com.facebook.react.ReactApplication;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
@@ -123,6 +128,36 @@ public class WidgetSmokeTest {
                     save(bitmap.get(), pattern + "-" + name + "-background");
                     Thread.sleep(3000); // Allow the native scrolling collection to bind its rows.
                     save(instrumentation.getUiAutomation().takeScreenshot(), pattern + "-" + name + "-launcher");
+                    if (pattern.equals("doodles") && name.equals("FriendListening")) {
+                        assertFalse("Placing a widget did not create its persistent refresh schedule",
+                            WorkManager.getInstance(context).getWorkInfosForUniqueWork(WidgetRefreshScheduler.WORK_NAME).get(10, TimeUnit.SECONDS).isEmpty());
+                        // Exercise the same worker used by the 15-minute schedule,
+                        // without waiting fifteen minutes or touching the refresh UI.
+                        reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class).emit("WIDGET_SMOKE_AUTOMATIC", null);
+                        ready.set(false);
+                        deadline = System.currentTimeMillis() + 10000;
+                        while (!ready.get() && System.currentTimeMillis() < deadline) {
+                            instrumentation.runOnMainSync(() -> ready.set(hasText(activity.getWindow().getDecorView(), "Automatic check armed")));
+                            Thread.sleep(100);
+                        }
+                        assertTrue("Automatic refresh test was not armed", ready.get());
+                        Bitmap beforeRefresh = bitmap.get();
+                        WorkManager.getInstance(context).enqueue(new OneTimeWorkRequest.Builder(WidgetRefreshWorker.class).build());
+                        ready.set(false);
+                        deadline = System.currentTimeMillis() + 20000;
+                        while (!ready.get() && System.currentTimeMillis() < deadline) {
+                            instrumentation.runOnMainSync(() -> {
+                                ImageView image = view.get().findViewById(imageId);
+                                if (image != null && image.getDrawable() instanceof BitmapDrawable) {
+                                    Bitmap current = ((BitmapDrawable) image.getDrawable()).getBitmap();
+                                    ready.set(hasText(activity.getWindow().getDecorView(), "Automatic refresh fetched") && !beforeRefresh.sameAs(current));
+                                }
+                            });
+                            Thread.sleep(150);
+                        }
+                        assertTrue("The scheduled worker did not fetch and redraw the new song", ready.get());
+                        save(instrumentation.getUiAutomation().takeScreenshot(), "automatic-widget-refresh");
+                    }
                     if (pattern.equals("doodles")) {
                         // Change the options on the same placed widget, as a
                         // launcher does when its resize handles are dragged.

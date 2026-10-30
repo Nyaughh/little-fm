@@ -10,6 +10,8 @@ if source.resolve() == destination.resolve():
     raise SystemExit('Input and output APK paths must differ.')
 with zipfile.ZipFile(source) as archive:
     bundle = archive.read('assets/index.android.bundle')
+    if b'widget-fixture.test' in bundle:
+        raise SystemExit('The emulator fixture entry must never be published.')
     if any(marker not in bundle for marker in [b'RNWidgetBackgroundTask', b'FriendListening', b'ListeningCircle']):
         raise SystemExit('Android widget registration is missing from the bundled app.')
     names = archive.namelist()

@@ -4,8 +4,10 @@ import { getWidgetInfo, registerWidgetTaskHandler, requestWidgetUpdateById, type
 import { loadListeningState, refreshListeningState } from '../services/listening';
 import { ListeningWidget } from './ListeningWidget';
 import { withWidgetArtwork } from '../services/widget-artwork';
+import type { ListeningState } from '../services/listening-model';
 
 const names = ['FriendListening', 'ListeningCircle'];
+let renderRevision = 0;
 export const widgetsAvailable = () => Boolean(NativeModules.AndroidWidget);
 export function registerWidgets() {
   if (widgetsAvailable()) registerWidgetTaskHandler(widgetTaskHandler);
@@ -17,20 +19,36 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
   // A resize should reflow immediately, including offline, without starting
   // another Last.fm request for every drag of a launcher resize handle.
   if (props.widgetAction === 'WIDGET_RESIZED') return;
-  const state = await withWidgetArtwork(await refreshListeningState());
-  // The launcher may have resized or removed this widget while the fetch ran.
-  const current = (await getWidgetInfo(props.widgetInfo.widgetName)).find(info => info.widgetId === props.widgetInfo.widgetId);
-  if (current) props.renderWidget(<ListeningWidget state={state} circle={circle} height={current.height} width={current.width} />);
+  await publishArtwork(await refreshListeningState(), props);
+}
+async function renderState(state: ListeningState, origin?: WidgetTaskHandlerProps) {
+  const groups = await Promise.all(names.map(async widgetName => ({ widgetName, widgets: await getWidgetInfo(widgetName) })));
+  await Promise.all(groups.map(async ({ widgetName, widgets }) => {
+    await Promise.all(widgets.map(info => {
+      if (origin && widgetName === origin.widgetInfo.widgetName && info.widgetId === origin.widgetInfo.widgetId) {
+        origin.renderWidget(<ListeningWidget state={state} circle={widgetName === 'ListeningCircle'} height={info.height} width={info.width} />);
+        return Promise.resolve();
+      }
+      return requestWidgetUpdateById({ widgetName, widgetId: info.widgetId,
+        renderWidget: current => <ListeningWidget state={state} circle={widgetName === 'ListeningCircle'} height={current.height} width={current.width} /> });
+    }));
+  }));
+}
+async function publishArtwork(state: ListeningState, origin?: WidgetTaskHandlerProps) {
+  const revision = ++renderRevision;
+  let painting = Promise.resolve();
+  const paint = (next: ListeningState) => {
+    painting = painting.catch(() => {}).then(async () => { if (revision === renderRevision) await renderState(next, origin); });
+    return painting;
+  };
+  // Publish the new song first; one missing cover must not hold every row back.
+  await paint(await withWidgetArtwork(state, false));
+  const complete = await withWidgetArtwork(state, true, partial => { void paint(partial).catch(() => {}); });
+  await paint(complete);
 }
 export async function syncWidgets() {
   if (!widgetsAvailable()) return;
-  const groups = await Promise.all(names.map(async widgetName => ({ widgetName, widgets: await getWidgetInfo(widgetName) })));
-  if (!groups.some(group => group.widgets.length)) return;
-  const state = await withWidgetArtwork(await loadListeningState());
-  await Promise.all(groups.map(async ({ widgetName, widgets }) => {
-    await Promise.all(widgets.map(({ widgetId }) => requestWidgetUpdateById({
-      widgetName, widgetId,
-      renderWidget: info => <ListeningWidget state={state} circle={widgetName === 'ListeningCircle'} height={info.height} width={info.width} />,
-    })));
-  }));
+  const widgets = await Promise.all(names.map(name => getWidgetInfo(name)));
+  if (!widgets.some(group => group.length)) return;
+  await publishArtwork(await loadListeningState());
 }

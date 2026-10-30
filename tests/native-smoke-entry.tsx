@@ -9,6 +9,25 @@ import { defaultSettings, patterns, type Pattern, type ListeningState } from '..
 import { saveUsernames, saveWidgetSettings } from '../services/listening';
 import { resolveArtwork } from '../services/artwork';
 
+// Real HTTP bytes exercise Android Blob decoding and image compression. Only
+// the test build remaps this image to the runner's local, >64KB PNG fixture.
+const networkFetch = global.fetch;
+let fixtureTitle = 'Glue Song';
+let onAutomaticFetch: (() => void) | undefined;
+global.fetch = (async (input: any, options: any) => {
+  const url = String(typeof input === 'string' ? input : input.url);
+  if (url === 'https://widget-fixture.test/cover.png') return networkFetch('http://127.0.0.1:8788/cover.png', options);
+  if (url.includes('/api/lastfm?')) {
+    const method = decodeURIComponent(url.match(/[?&]method=([^&]+)/)?.[1] || '').toLowerCase();
+    const image = [{ size: 'large', '#text': 'https://widget-fixture.test/cover.png' }];
+    const body = method === 'user.getrecenttracks' ? { recenttracks: { track: [{ name: fixtureTitle, artist: { '#text': 'beabadoobee' }, album: { '#text': 'Glue Song' }, image, '@attr': { nowplaying: 'true' } }] } }
+      : method === 'album.getinfo' ? { album: { image } } : method === 'track.getinfo' ? { track: { album: { image } } } : { albums: [] };
+    if (method === 'user.getrecenttracks' && fixtureTitle === 'Automatic refresh song') onAutomaticFetch?.();
+    return new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  }
+  return networkFetch(input, options);
+}) as typeof fetch;
+
 registerWidgets();
 const state: ListeningState = {
   usernames: ['mochi', 'fern', 'june', 'olive'], settings: defaultSettings,
@@ -19,15 +38,18 @@ function SmokeApp() {
   const [coverReady, setCoverReady] = useState(false);
   const [preview, setPreview] = useState(state);
   useEffect(() => {
+    onAutomaticFetch = () => setStatus('Automatic refresh fetched');
+    const automatic = DeviceEventEmitter.addListener('WIDGET_SMOKE_AUTOMATIC', () => { fixtureTitle = 'Automatic refresh song'; setStatus('Automatic check armed'); });
     const subscription = DeviceEventEmitter.addListener('WIDGET_SMOKE_PATTERN', async (pattern: Pattern) => {
       if (!(pattern in patterns)) return;
+      fixtureTitle = 'Glue Song';
       const settings = { ...defaultSettings, pattern };
       await saveWidgetSettings(settings);
       await syncWidgets();
       setPreview({ ...state, settings });
       setStatus('Pattern ready ' + pattern);
     });
-    return () => subscription.remove();
+    return () => { subscription.remove(); automatic.remove(); onAutomaticFetch = undefined; };
   }, []);
   useEffect(() => { void (async () => {
     try {

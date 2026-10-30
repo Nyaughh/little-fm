@@ -54,6 +54,7 @@ class MainApplication : Application(), ReactApplication {
     }
     ApplicationLifecycleDispatcher.onApplicationCreate(this)
     publishWidgetPreviews()
+    com.lastfm.tracktracker.widget.WidgetRefreshScheduler.ensure(this)
   }
 
   private fun publishWidgetPreviews() {

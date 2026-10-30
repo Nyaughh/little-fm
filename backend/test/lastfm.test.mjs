@@ -98,3 +98,35 @@ test('Last.fm profile errors remain usable by the client without raw upstream me
     assert.equal(JSON.stringify(result).includes(key), false);
   }
 });
+
+test('album searches are bounded, read-only, cached, and strip private upstream fields', async () => {
+  let target, calls = 0;
+  const handle = createLastFmService({ apiKey: key, fetcher: async url => {
+    target = url; calls++;
+    return response({ results: { albummatches: { album: Array.from({ length: 20 }, () => ({ name: 'Musical', artist: 'Various Artists', image: [{ size: 'large', '#text': 'https://cover.test/musical.jpg' }], debug: key })) } } });
+  } });
+  const url = '/api/lastfm?method=album.search&album=Musical';
+  const result = await handle({ url });
+  assert.equal(target.searchParams.get('limit'), '8');
+  assert.equal(result.body.albums.length, 8);
+  assert.equal(result.body.albums[0].artist, 'Various Artists');
+  assert.equal(JSON.stringify(result).includes(key), false);
+  await handle({ url });
+  assert.equal(calls, 1);
+  assert.equal((await handle({ url: url + '&limit=1000' })).status, 400);
+});
+
+test('empty artwork metadata is retried after a minute instead of being cached for six hours', async () => {
+  let time = 1000, calls = 0;
+  const handle = createLastFmService({ apiKey: key, now: () => time, fetcher: async () => {
+    calls++;
+    return response({ album: { image: calls === 1 ? [] : [{ size: 'large', '#text': 'https://cover.test/recovered.jpg' }] } });
+  } });
+  const url = '/api/lastfm?method=album.getInfo&artist=Artist&album=Album';
+  assert.equal((await handle({ url })).headers['Vercel-CDN-Cache-Control'], 'public, s-maxage=60');
+  time += 61000;
+  const recovered = await handle({ url });
+  assert.equal(calls, 2);
+  assert.equal(recovered.body.album.image[0]['#text'], 'https://cover.test/recovered.jpg');
+  assert.equal(recovered.headers['Vercel-CDN-Cache-Control'], 'public, s-maxage=21600');
+});

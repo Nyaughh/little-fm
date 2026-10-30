@@ -52,7 +52,7 @@ export default function HomeScreen() {
       <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${row.username}`} hitSlop={10} onPress={() => setConfirmRemove(row.username)}><Ionicons name="close-outline" size={20} color={c.muted} /></Pressable>
     </View>
     <Pressable accessibilityRole={row.currentTrack?.url ? 'link' : undefined} disabled={!row.currentTrack?.url} onPress={() => { if (row.currentTrack?.url) void Linking.openURL(row.currentTrack.url).catch(() => setMessage('Could not open this song.')); }} style={[s.inline, { marginTop: 16, gap: 14 }]}>
-      <AlbumCover track={row.currentTrack} size={56} />
+      <AlbumCover track={row.currentTrack} refreshKey={row.checkedAt} size={56} />
       <View style={{ flex: 1, gap: 5 }}>
         <Text style={s.song} numberOfLines={2}>{row.currentTrack?.title || (row.error ? 'Could not load this profile' : fm.loading ? 'Checking their last song…' : 'Quiet for now')}</Text>
         <Text style={s.body} numberOfLines={1}>{row.currentTrack?.artist || (row.error ? row.error : 'No recent songs on Last.fm')}</Text>

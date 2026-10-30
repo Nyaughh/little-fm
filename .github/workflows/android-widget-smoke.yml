@@ -41,6 +41,8 @@ jobs:
           profile: pixel_6
           disable-animations: true
           script: |
+            python3 scripts/widget-fixture-server.py > widget-fixture.log 2>&1 &
+            adb reverse tcp:8788 tcp:8788
             adb install android/app/build/outputs/apk/release/app-release.apk
             adb install android/app/build/outputs/apk/androidTest/release/app-release-androidTest.apk
             adb shell appwidget grantbind --package com.lastfm.tracktracker --user 0
@@ -56,5 +58,6 @@ jobs:
           path: |
             widget-test-result.txt
             widget-logcat.txt
+            widget-fixture.log
             widget-smoke/
           retention-days: 7

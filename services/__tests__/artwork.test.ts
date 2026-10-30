@@ -70,3 +70,40 @@ test('an update retries a saved artwork failure instead of keeping the old Andro
   expect((await artwork.resolveArtwork({ ...song, image: 'https://cover.test/album.jpg' })).uri).toBe('data:image/jpeg;base64,VALID');
   expect(loader).toHaveBeenCalledTimes(1);
 });
+
+test('album-title search finds a musical cover filed under another cast member', async () => {
+  const track = { ...song, artist: 'Dave Clemons', album: 'Jekyll & Hyde: The Gothic Musical Thriller' };
+  (global.fetch as jest.Mock).mockImplementation(async url => ({ ok: true, json: async () => String(url).includes('album.search')
+    ? { albums: [{ name: track.album, artist: 'Various Artists', image: images('https://cover.test/musical.jpg') }] } : {} }));
+  loader.mockResolvedValue('data:image/jpeg;base64,MUSICAL');
+  expect((await artwork.resolveArtwork(track)).source).toBe('Last.fm album search');
+});
+
+test('a common album name never borrows artwork from a different artist', () => {
+  expect(artwork.matchingAlbums({ ...song, album: 'Greatest Hits' }, [{ name: 'Greatest Hits', artist: 'Other' }])).toEqual([]);
+  expect(artwork.matchingAlbums(song, [{ name: 'Wrong Album', artist: song.artist }])).toEqual([]);
+});
+
+test('a blocked primary image does not delay a working metadata fallback', async () => {
+  loader.mockImplementation((url, signal) => url.includes('blocked') ? new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(new Error('aborted')))) : Promise.resolve('data:image/jpeg;base64,FALLBACK'));
+  (global.fetch as jest.Mock).mockImplementation(async url => ({ ok: true, json: async () => String(url).includes('album.getInfo') ? { album: { image: images('https://cover.test/quick.jpg') } } : {} }));
+  const start = Date.now();
+  expect((await artwork.resolveArtwork({ ...song, image: 'https://cover.test/blocked.jpg' })).uri).toContain('FALLBACK');
+  expect(Date.now() - start).toBeLessThan(1500);
+});
+
+test('failures retry after short backoff and a newly supplied cover bypasses the old miss', async () => {
+  const first = await artwork.resolveArtwork(song);
+  expect(first.expires - Date.now()).toBeLessThanOrEqual(5000);
+  const calls = (global.fetch as jest.Mock).mock.calls.length;
+  await artwork.resolveArtwork(song);
+  expect(global.fetch).toHaveBeenCalledTimes(calls);
+  loader.mockResolvedValue('data:image/jpeg;base64,NEW');
+  expect((await artwork.resolveArtwork({ ...song, image: 'https://cover.test/new.jpg' })).uri).toContain('NEW');
+});
+
+test('a circle with more than twelve albums keeps the first cover cached', async () => {
+  loader.mockResolvedValue('data:image/jpeg;base64,SMALL');
+  for (let index = 0; index < 20; index++) await artwork.resolveArtwork({ ...song, album: `Album ${index}`, image: 'https://cover.test/good.jpg' });
+  expect((await artwork.getCachedArtwork({ ...song, album: 'Album 0' }))?.uri).toContain('SMALL');
+});

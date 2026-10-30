@@ -12,7 +12,7 @@ export function WidgetPreview({ state, circle = false, onRefresh, maxWidth = 316
   const width = circle ? Math.min(316, maxWidth) : 184;
   const height = 238;
   const rowCards = rows.map(row => <View key={row.username} style={{ height: circle ? circleLayout.rowHeight : undefined, flexShrink: 0, flexDirection: circle ? 'row' : 'column', gap: circle ? 12 : 10, alignItems: circle ? 'center' : 'flex-start', paddingVertical: circle ? 8 : 0 }}>
-    <AlbumCover track={row.currentTrack} size={circle ? 46 : 66} radius={circle ? 9 : 12} />
+    <AlbumCover track={row.currentTrack} refreshKey={row.checkedAt} size={circle ? 46 : 66} radius={circle ? 9 : 12} />
     <View style={{ ...(circle ? { flex: 1 } : { width: '100%' }), gap: 4 }}>
       <Text numberOfLines={circle ? 1 : 2} style={{ color: palette.ink, fontSize: circle ? 13 : 16, fontWeight: '600', letterSpacing: -.2 }}>{row.currentTrack?.title || (row.error ? 'Could not load' : 'Quiet for now')}</Text>
       <Text numberOfLines={1} style={{ color: palette.muted, fontSize: 11 }}>{row.currentTrack?.artist || 'No recent songs'}</Text>

@@ -97,8 +97,10 @@ android {
         applicationId 'com.lastfm.tracktracker'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 4
-        versionName "1.0.3"
+        versionCode 5
+        versionName "1.0.4"
+        // Only the emulator test build can reach its loopback HTTP fixture.
+        manifestPlaceholders = [littleFmCleartextTraffic: project.hasProperty('littleFmNativeTest') ? "true" : "false"]
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     signingConfigs {
@@ -155,6 +157,7 @@ android {
 }
 
 dependencies {
+    implementation("androidx.work:work-runtime:2.8.1")
     androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     // The version of react-native is set by the React Native Gradle Plugin
