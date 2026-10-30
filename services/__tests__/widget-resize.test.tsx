@@ -1,4 +1,5 @@
 import React from 'react';
+import { getWidgetInfo } from 'react-native-android-widget';
 import { widgetTaskHandler } from '../../widgets/bridge.android';
 import { loadListeningState, refreshListeningState } from '../listening';
 import { withWidgetArtwork } from '../widget-artwork';
@@ -8,7 +9,8 @@ jest.mock('../listening', () => ({ loadListeningState: jest.fn(), refreshListeni
 jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
 jest.mock('../widget-artwork', () => ({ withWidgetArtwork: jest.fn(state => Promise.resolve(state)) }));
 jest.mock('../../widgets/ListeningWidget', () => ({ ListeningWidget: () => null }));
-jest.mock('react-native-android-widget', () => ({ registerWidgetTaskHandler: jest.fn() }));
+jest.mock('react-native-android-widget', () => ({ registerWidgetTaskHandler: jest.fn(), getWidgetInfo: jest.fn() }));
+beforeEach(() => jest.clearAllMocks());
 
 test.each(['FriendListening', 'ListeningCircle'])('resizing an already placed %s renders its saved data at the new size without a network request', async widgetName => {
   const state = { usernames: ['mochi'], tracks: [], settings: defaultSettings };
@@ -19,6 +21,20 @@ test.each(['FriendListening', 'ListeningCircle'])('resizing an already placed %s
   expect((renderWidget.mock.calls[0][0] as React.ReactElement).props).toMatchObject({ width: 210, height: 140, state, circle: widgetName === 'ListeningCircle' });
   expect(withWidgetArtwork).toHaveBeenCalledWith(state, false);
   expect(refreshListeningState).not.toHaveBeenCalled();
+});
+
+test('a slow refresh uses the latest placed size instead of restoring the layout from before a resize', async () => {
+  const state = { usernames: ['mochi'], tracks: [], settings: defaultSettings };
+  (loadListeningState as jest.Mock).mockResolvedValue(state);
+  (refreshListeningState as jest.Mock).mockResolvedValue(state);
+  (getWidgetInfo as jest.Mock).mockResolvedValue([{ widgetId: 5, width: 210, height: 140 }]);
+  const renderWidget = jest.fn();
+  await widgetTaskHandler({ widgetAction: 'WIDGET_UPDATE', widgetInfo: { widgetName: 'ListeningCircle', widgetId: 5, width: 316, height: 238 }, renderWidget } as any);
+  expect(renderWidget.mock.calls.map(([element]) => ({ width: element.props.width, height: element.props.height }))).toEqual([{ width: 316, height: 238 }, { width: 210, height: 140 }]);
+  (getWidgetInfo as jest.Mock).mockResolvedValue([]);
+  renderWidget.mockClear();
+  await widgetTaskHandler({ widgetAction: 'WIDGET_UPDATE', widgetInfo: { widgetName: 'ListeningCircle', widgetId: 5, width: 316, height: 238 }, renderWidget } as any);
+  expect(renderWidget).toHaveBeenCalledTimes(1);
 });
 
 test('generated widget resize minimums survive prebuild and match the native resources', () => {

@@ -18,7 +18,9 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
   // another Last.fm request for every drag of a launcher resize handle.
   if (props.widgetAction === 'WIDGET_RESIZED') return;
   const state = await withWidgetArtwork(await refreshListeningState());
-  props.renderWidget(<ListeningWidget state={state} circle={circle} height={props.widgetInfo.height} width={props.widgetInfo.width} />);
+  // The launcher may have resized or removed this widget while the fetch ran.
+  const current = (await getWidgetInfo(props.widgetInfo.widgetName)).find(info => info.widgetId === props.widgetInfo.widgetId);
+  if (current) props.renderWidget(<ListeningWidget state={state} circle={circle} height={current.height} width={current.width} />);
 }
 export async function syncWidgets() {
   if (!widgetsAvailable()) return;
