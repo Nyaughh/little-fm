@@ -5,7 +5,11 @@ export async function loadCoverImage(uri: string, signal: AbortSignal): Promise<
   const response = await fetch(uri, { signal });
   if (!response.ok) throw new Error('Cover unavailable');
   const blob = await response.blob();
-  if (!blob.type.startsWith('image/') || !blob.size || blob.size > 64000) throw new Error('Unsupported cover');
+  // Android's RN BlobModule omits type on network response blobs. Restore it
+  // from the HTTP header before FileReader creates the cached image data URI.
+  const mime = (blob.type || response.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+  if (!mime.startsWith('image/') || !blob.size || blob.size > 64000) throw new Error('Unsupported cover');
+  const image = blob.type ? blob : blob.slice(0, blob.size, mime);
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
@@ -20,6 +24,6 @@ export async function loadCoverImage(uri: string, signal: AbortSignal): Promise<
     const cancel = () => { reader.abort(); reject(new Error('Artwork timed out')); };
     if (signal.aborted) { reject(new Error('Artwork timed out')); return; }
     signal.addEventListener('abort', cancel, { once: true });
-    reader.readAsDataURL(blob);
+    reader.readAsDataURL(image);
   });
 }

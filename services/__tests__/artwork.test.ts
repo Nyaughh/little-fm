@@ -61,3 +61,12 @@ test('an image error skips the previously cached URL', async () => {
   expect((await artwork.resolveArtwork(track, ['https://cover.test/old.jpg'])).uri).toBe('https://cover.test/new.jpg');
   expect(loader.mock.calls[1][0]).toBe('https://cover.test/new.jpg');
 });
+
+test('an update retries a saved artwork failure instead of keeping the old Android placeholder', async () => {
+  const module = require('@react-native-async-storage/async-storage');
+  const storage = module.default ?? module;
+  await storage.setItem('@lastfm_artwork_v1', JSON.stringify([['artist|album', { expires: Date.now() + 600000 }]]));
+  loader.mockResolvedValue('data:image/jpeg;base64,VALID');
+  expect((await artwork.resolveArtwork({ ...song, image: 'https://cover.test/album.jpg' })).uri).toBe('data:image/jpeg;base64,VALID');
+  expect(loader).toHaveBeenCalledTimes(1);
+});

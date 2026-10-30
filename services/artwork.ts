@@ -22,7 +22,8 @@ export function isCoverUrl(value: unknown): value is string {
 }
 async function restoreCache() {
   if (!restored) restored = AsyncStorage.getItem(CACHE_KEY).then(value => {
-    try { for (const [id, cover] of JSON.parse(value || '[]')) if (cover.expires > Date.now()) memory.set(id, cover); } catch {}
+    // Retry saved failures after an app restart/update; keep successful covers.
+    try { for (const [id, cover] of JSON.parse(value || '[]')) if (cover?.uri && cover.expires > Date.now()) memory.set(id, cover); } catch {}
   }).catch(() => {});
   await restored;
 }

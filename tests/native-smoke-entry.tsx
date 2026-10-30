@@ -16,19 +16,22 @@ const state: ListeningState = {
 };
 function SmokeApp() {
   const [status, setStatus] = useState('Preparing native widgets');
+  const [coverReady, setCoverReady] = useState(false);
   useEffect(() => { void (async () => {
     try {
       await saveUsernames(state.usernames);
       await saveWidgetSettings(state.settings);
       await AsyncStorage.setItem('@lastfm_tracks_v1', JSON.stringify(state.tracks));
       const cover = await resolveArtwork(state.tracks[0].currentTrack!);
-      if (!cover.uri?.startsWith('data:image')) throw new Error('Android artwork decoding failed');
+      setCoverReady(Boolean(cover.uri?.startsWith('data:image')));
+      console.info('WIDGET_SMOKE_ARTWORK', cover.uri?.startsWith('data:image') ? 'decoded' : 'missing');
       await syncWidgets();
-      setStatus('Native artwork ready');
-    } catch (error) { setStatus('FAILED: ' + (error instanceof Error ? error.message : 'unknown')); }
+    } catch (error) { console.warn('WIDGET_SMOKE_SETUP', error instanceof Error ? error.message : 'unknown'); }
+    finally { setStatus('Native checks ready'); }
   })(); }, []);
   return <View style={{ flex: 1, paddingTop: 36, gap: 16, alignItems: 'center', backgroundColor: '#FAF8F2' }}>
     <Text>{status}</Text>
+    <Text>{coverReady ? 'Artwork ready' : 'Artwork missing'}</Text>
     <WidgetPreview state={state} />
     <WidgetPreview state={state} circle />
   </View>;

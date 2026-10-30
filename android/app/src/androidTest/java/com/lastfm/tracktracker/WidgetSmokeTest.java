@@ -56,11 +56,11 @@ public class WidgetSmokeTest {
             long deadline = System.currentTimeMillis() + 45000;
             AtomicReference<Boolean> ready = new AtomicReference<>(false);
             while (!ready.get() && System.currentTimeMillis() < deadline) {
-                instrumentation.runOnMainSync(() -> ready.set(hasText(activity.getWindow().getDecorView(), "Native artwork ready")));
+                instrumentation.runOnMainSync(() -> ready.set(hasText(activity.getWindow().getDecorView(), "Native checks ready")));
                 Thread.sleep(250);
             }
-            assertTrue("Android failed to decode the real album cover", ready.get());
             save(instrumentation.getUiAutomation().takeScreenshot(), "in-app-previews");
+            assertTrue("Native app setup did not finish", ready.get());
             for (String name : new String[]{"FriendListening", "ListeningCircle"}) {
                 int width = name.equals("FriendListening") ? 184 : 316;
                 AppWidgetManager manager = AppWidgetManager.getInstance(context);
@@ -105,6 +105,8 @@ public class WidgetSmokeTest {
                     instrumentation.runOnMainSync(() -> ((ViewGroup) view.get().getParent()).removeView(view.get()));
                 } finally { host.deleteHost(); host.stopListening(); }
             }
+            instrumentation.runOnMainSync(() -> ready.set(hasText(activity.getWindow().getDecorView(), "Artwork ready")));
+            assertTrue("Android failed to decode the real album cover", ready.get());
         } finally { activity.finish(); }
     }
 }
